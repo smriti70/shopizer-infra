@@ -63,6 +63,22 @@ GitHub Actions
  backend    admin     shop
 ```
 
+## Usage
+
+### Start
+```bash
+colima start
+terraform init   # first time only
+terraform apply -auto-approve
+```
+> Note: Backend may take a couple of minutes to fully start.
+
+### Stop & Destroy
+```bash
+terraform destroy -auto-approve
+colima stop
+```
+
 ## Terraform Module Structure
 
 ```
