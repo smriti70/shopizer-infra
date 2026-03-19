@@ -1,45 +1,46 @@
 terraform {
   required_providers {
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "~> 3.0"
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
     }
   }
 }
 
-provider "docker" {
-  host = "unix:///Users/${var.username}/.colima/default/docker.sock"
-}
-
-resource "docker_network" "shopizer" {
-  name = "shopizer-network"
+provider "kubernetes" {
+  config_path    = "~/.kube/config"
+  config_context = "colima"
 }
 
 module "backend" {
-  source        = "./modules/container"
-  name          = "shopizer-backend"
-  image         = var.backend_image
-  internal_port = 8080
-  external_port = 8090
-  network_name  = docker_network.shopizer.name
+  source         = "./modules/k8s-service"
+  name           = "shopizer-backend"
+  image          = var.backend_image
+  container_port = 8080
+  node_port      = 30090
+  replicas       = 2
 }
 
 module "admin" {
-  source        = "./modules/container"
-  name          = "shopizer-admin"
-  image         = var.admin_image
-  internal_port = 80
-  external_port = 8091
-  network_name  = docker_network.shopizer.name
-  env_vars      = ["APP_BASE_URL=http://${var.backend_host}:8090/api"]
+  source         = "./modules/k8s-service"
+  name           = "shopizer-admin"
+  image          = var.admin_image
+  container_port = 80
+  node_port      = 30091
+  replicas       = 2
+  env_vars = {
+    APP_BASE_URL = "http://${var.backend_host}:30090/api"
+  }
 }
 
 module "shop" {
-  source        = "./modules/container"
-  name          = "shopizer-shop"
-  image         = var.shop_image
-  internal_port = 80
-  external_port = 3001
-  network_name  = docker_network.shopizer.name
-  env_vars      = ["APP_BASE_URL=http://${var.backend_host}:8090"]
+  source         = "./modules/k8s-service"
+  name           = "shopizer-shop"
+  image          = var.shop_image
+  container_port = 80
+  node_port      = 30001
+  replicas       = 2
+  env_vars = {
+    APP_BASE_URL = "http://${var.backend_host}:30090"
+  }
 }
