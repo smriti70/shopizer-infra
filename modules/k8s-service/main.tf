@@ -54,12 +54,11 @@ resource "kubernetes_service" "this" {
 
   spec {
     selector = { app = var.name }
-    type     = "NodePort"
+    type     = "ClusterIP"
 
     port {
       port        = var.container_port
       target_port = var.container_port
-      node_port   = var.node_port
     }
   }
 }

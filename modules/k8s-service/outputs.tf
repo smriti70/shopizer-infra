@@ -1,3 +1,3 @@
 output "url" {
-  value = "http://localhost:${var.node_port}"
+  value = "http://shopizer.local"
 }

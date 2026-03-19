@@ -1,3 +1,3 @@
-output "backend_url" { value = module.backend.url }
-output "admin_url"   { value = module.admin.url }
-output "shop_url"    { value = module.shop.url }
+output "shop_url"    { value = "http://shopizer.local" }
+output "admin_url"   { value = "http://shopizer.local/admin" }
+output "backend_url" { value = "http://shopizer.local/api" }

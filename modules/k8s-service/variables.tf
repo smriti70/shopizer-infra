@@ -1,7 +1,10 @@
 variable "name" { type = string }
 variable "image" { type = string }
 variable "container_port" { type = number }
-variable "node_port" { type = number }
+variable "node_port" {
+  type    = number
+  default = 0
+}
 variable "replicas" {
   type    = number
   default = 2
