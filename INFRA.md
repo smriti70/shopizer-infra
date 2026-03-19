@@ -12,37 +12,45 @@
 │  │  ┌─────────────────────────────────────────────────┐   │     │
 │  │  │               default namespace                 │   │     │
 │  │  │                                                 │   │     │
-│  │  │  shopizer-backend (2 pods)                      │   │     │
-│  │  │  ┌──────────┐  ┌──────────┐                     │   │     │
-│  │  │  │ pod 1    │  │ pod 2    │  NodePort: 30090    │   │     │
-│  │  │  │ :8080    │  │ :8080    │                     │   │     │
-│  │  │  └──────────┘  └──────────┘                     │   │     │
+│  │  │  shopizer-backend (1 pod)                       │   │     │
+│  │  │  ┌──────────────────────┐                       │   │     │
+│  │  │  │ pod 1  :8080         │  backend.shopizer.local│  │     │
+│  │  │  └──────────────────────┘                       │   │     │
 │  │  │                                                 │   │     │
 │  │  │  shopizer-admin (2 pods)                        │   │     │
 │  │  │  ┌──────────┐  ┌──────────┐                     │   │     │
-│  │  │  │ pod 1    │  │ pod 2    │  NodePort: 30091    │   │     │
+│  │  │  │ pod 1    │  │ pod 2    │  admin.shopizer.local│  │     │
 │  │  │  │ :80      │  │ :80      │                     │   │     │
 │  │  │  └──────────┘  └──────────┘                     │   │     │
 │  │  │                                                 │   │     │
 │  │  │  shopizer-shop (2 pods)                         │   │     │
 │  │  │  ┌──────────┐  ┌──────────┐                     │   │     │
-│  │  │  │ pod 1    │  │ pod 2    │  NodePort: 30001    │   │     │
+│  │  │  │ pod 1    │  │ pod 2    │  shopizer.local      │  │     │
 │  │  │  │ :80      │  │ :80      │                     │   │     │
 │  │  │  └──────────┘  └──────────┘                     │   │     │
+│  │  │                                                 │   │     │
+│  │  │  nginx ingress controller                       │   │     │
 │  │  └─────────────────────────────────────────────────┘   │     │
 │  └────────────────────────────────────────────────────────┘     │
-│           │                  │                  │               │
-│        :30090             :30091             :30001             │
+│                          :80                                    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Port Mapping
+## URLs
 
-| Service  | Container Port | NodePort | URL                    |
-|----------|---------------|----------|------------------------|
-| Backend  | 8080          | 30090    | http://localhost:30090 |
-| Admin    | 80            | 30091    | http://localhost:30091 |
-| Shop     | 80            | 30001    | http://localhost:30001 |
+| Service  | URL                            |
+|----------|--------------------------------|
+| Shop     | http://shopizer.local          |
+| Admin    | http://admin.shopizer.local    |
+| Backend  | http://backend.shopizer.local  |
+
+## /etc/hosts (required)
+
+```
+127.0.0.1 shopizer.local
+127.0.0.1 admin.shopizer.local
+127.0.0.1 backend.shopizer.local
+```
 
 ## Docker Images (Docker Hub)
 
@@ -51,6 +59,14 @@
 | Backend  | smriti70/shopizer-backend:latest |
 | Admin    | smriti70/shopizer-admin:latest   |
 | Shop     | smriti70/shopizer-shop:latest    |
+
+## Replicas
+
+| Service  | Replicas | Reason                                      |
+|----------|----------|---------------------------------------------|
+| Backend  | 1        | H2 embedded DB cannot be shared across pods |
+| Admin    | 2        | Stateless, supports rolling updates         |
+| Shop     | 2        | Stateless, supports rolling updates         |
 
 ## CI/CD Pipeline
 
@@ -73,12 +89,12 @@ GitHub Actions
     ┌─────────┼─────────┐
     ▼         ▼         ▼
  backend    admin     shop
-(2 pods)  (2 pods)  (2 pods)
+ (1 pod)  (2 pods)  (2 pods)
 ```
 
 ## Rolling Updates
 
-With 2 replicas per service, Kubernetes performs zero-downtime rolling updates:
+With 2 replicas (admin and shop), Kubernetes performs zero-downtime rolling updates:
 - New pod starts and passes readiness probe
 - Old pod is terminated only after new pod is healthy
 - Traffic is never interrupted
@@ -109,11 +125,11 @@ colima stop
 
 ```
 shopizer-infra/
-├── main.tf          # provider, module calls for all 3 services
-├── variables.tf     # image tags, host config
+├── main.tf          # provider, ingress, module calls for all 3 services
+├── variables.tf     # image tags
 ├── outputs.tf       # service URLs
 └── modules/
-    └── k8s-service/ # reusable Deployment + NodePort Service
+    └── k8s-service/ # reusable Deployment + ClusterIP Service
         ├── main.tf
         ├── variables.tf
         └── outputs.tf
