@@ -18,7 +18,7 @@ module "backend" {
   image          = var.backend_image
   container_port = 8080
   node_port      = 30090
-  replicas       = 2
+  replicas       = 1
 }
 
 module "admin" {
@@ -29,7 +29,7 @@ module "admin" {
   node_port      = 30091
   replicas       = 2
   env_vars = {
-    APP_BASE_URL = "http://shopizer.local/api"
+    APP_BASE_URL = "http://backend.shopizer.local/api"
   }
 }
 
@@ -41,7 +41,7 @@ module "shop" {
   node_port      = 30001
   replicas       = 2
   env_vars = {
-    APP_BASE_URL = "http://shopizer.local"
+    APP_BASE_URL = "http://backend.shopizer.local"
   }
 }
 
@@ -54,12 +54,31 @@ resource "kubernetes_ingress_v1" "shopizer" {
   }
 
   spec {
+    # Shop frontend
     rule {
       host = "shopizer.local"
 
       http {
         path {
-          path      = "/api"
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "shopizer-shop"
+              port { number = 80 }
+            }
+          }
+        }
+      }
+    }
+
+    # Backend API
+    rule {
+      host = "backend.shopizer.local"
+
+      http {
+        path {
+          path      = "/"
           path_type = "Prefix"
           backend {
             service {
@@ -68,24 +87,20 @@ resource "kubernetes_ingress_v1" "shopizer" {
             }
           }
         }
+      }
+    }
 
-        path {
-          path      = "/admin"
-          path_type = "Prefix"
-          backend {
-            service {
-              name = "shopizer-admin"
-              port { number = 80 }
-            }
-          }
-        }
+    # Admin frontend
+    rule {
+      host = "admin.shopizer.local"
 
+      http {
         path {
           path      = "/"
           path_type = "Prefix"
           backend {
             service {
-              name = "shopizer-shop"
+              name = "shopizer-admin"
               port { number = 80 }
             }
           }
